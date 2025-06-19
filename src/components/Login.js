@@ -11,28 +11,30 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 function Login({ setUser }) {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  const processUser = async (user) => {
-    if (!user) return;
+ // Outside Login component
+const processUser = async (user, setUser) => {
+  if (!user) return;
 
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
+  const userRef = doc(db, "users", user.uid);
+  const userSnap = await getDoc(userRef);
 
-    if (!userSnap.exists()) {
-      await setDoc(userRef, {
-        name: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
-        joinedAt: new Date()
-      });
-    }
-
-    setUser({
-      uid: user.uid,
+  if (!userSnap.exists()) {
+    await setDoc(userRef, {
       name: user.displayName,
       email: user.email,
-      photoURL: user.photoURL
+      photoURL: user.photoURL,
+      joinedAt: new Date()
     });
-  };
+  }
+
+  setUser({
+    uid: user.uid,
+    name: user.displayName,
+    email: user.email,
+    photoURL: user.photoURL
+  });
+};
+
 
   const handleGoogleLogin = async () => {
     try {
@@ -49,19 +51,17 @@ function Login({ setUser }) {
   };
 
   // On redirect complete (mobile), resume user login
-  useEffect(() => {
-    const completeRedirectLogin = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          await processUser(result.user);
-        }
-      } catch (error) {
-        console.error("Redirect Login Error:", error);
+ useEffect(() => {
+  getRedirectResult(auth)
+    .then((result) => {
+      if (result && result.user) {
+        processUser(result.user, setUser);
       }
-    };
-    completeRedirectLogin(); // Avoids dependency hell
-  }, [processUser]);
+    })
+    .catch((error) => {
+      console.error("Redirect Login Error:", error);
+    });
+}, [setUser]);
 
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
