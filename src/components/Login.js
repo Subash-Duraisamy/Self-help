@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { auth, provider, db } from '../firebase';
 import {
   signInWithPopup,
@@ -10,21 +10,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 function Login({ setUser }) {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  const handleGoogleLogin = async () => {
-    try {
-      if (isMobile) {
-        await signInWithRedirect(auth, provider);
-      } else {
-        const result = await signInWithPopup(auth, provider);
-        await processUser(result.user);
-      }
-    } catch (error) {
-      console.error("Login Error:", error);
-      alert("Failed to log in. Try again.");
-    }
-  };
-
-  const processUser = async (user) => {
+  const processUser = useCallback(async (user) => {
     if (!user) return;
 
     const userRef = doc(db, "users", user.uid);
@@ -45,11 +31,9 @@ function Login({ setUser }) {
       email: user.email,
       photoURL: user.photoURL
     });
-  };
+  }, [setUser]);
 
-  // eslint-disable-next-line
   useEffect(() => {
-    // For mobile: handles redirect login result
     getRedirectResult(auth)
       .then((result) => {
         if (result && result.user) {
@@ -59,7 +43,21 @@ function Login({ setUser }) {
       .catch((error) => {
         console.error("Redirect Login Error:", error);
       });
-  }, []);
+  }, [processUser]); // ✅ Fix: include processUser here
+
+  const handleGoogleLogin = async () => {
+    try {
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
+      } else {
+        const result = await signInWithPopup(auth, provider);
+        await processUser(result.user);
+      }
+    } catch (error) {
+      console.error("Login Error:", error);
+      alert("Failed to log in. Try again.");
+    }
+  };
 
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
