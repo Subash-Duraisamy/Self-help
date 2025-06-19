@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { auth, provider, db } from '../firebase';
 import {
   signInWithPopup,
@@ -24,8 +24,7 @@ function Login({ setUser }) {
     }
   };
 
-  // ✅ useCallback to avoid ESLint warning
-  const processUser = useCallback(async (user) => {
+  const processUser = async (user) => {
     if (!user) return;
 
     const userRef = doc(db, "users", user.uid);
@@ -46,9 +45,11 @@ function Login({ setUser }) {
       email: user.email,
       photoURL: user.photoURL
     });
-  }, [setUser]);
+  };
 
+  // eslint-disable-next-line
   useEffect(() => {
+    // For mobile: handles redirect login result
     getRedirectResult(auth)
       .then((result) => {
         if (result && result.user) {
@@ -58,7 +59,7 @@ function Login({ setUser }) {
       .catch((error) => {
         console.error("Redirect Login Error:", error);
       });
-  }, [processUser]);
+  }, []);
 
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
