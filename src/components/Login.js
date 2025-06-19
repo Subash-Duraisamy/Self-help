@@ -1,4 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
+// src/components/Login.js
+import React, { useEffect } from 'react';
 import { auth, provider, db } from '../firebase';
 import {
   signInWithPopup,
@@ -10,7 +11,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 function Login({ setUser }) {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  const processUser = useCallback(async (user) => {
+  const processUser = async (user) => {
     if (!user) return;
 
     const userRef = doc(db, "users", user.uid);
@@ -31,19 +32,7 @@ function Login({ setUser }) {
       email: user.email,
       photoURL: user.photoURL
     });
-  }, [setUser]);
-
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result && result.user) {
-          processUser(result.user);
-        }
-      })
-      .catch((error) => {
-        console.error("Redirect Login Error:", error);
-      });
-  }, [processUser]); // ✅ Fix: include processUser here
+  };
 
   const handleGoogleLogin = async () => {
     try {
@@ -58,6 +47,21 @@ function Login({ setUser }) {
       alert("Failed to log in. Try again.");
     }
   };
+
+  // On redirect complete (mobile), resume user login
+  useEffect(() => {
+    const completeRedirectLogin = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          await processUser(result.user);
+        }
+      } catch (error) {
+        console.error("Redirect Login Error:", error);
+      }
+    };
+    completeRedirectLogin(); // Avoids dependency hell
+  }, []);
 
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
