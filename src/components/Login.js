@@ -1,41 +1,65 @@
 // src/components/Login.js
-import React from 'react';
+import React, { useEffect } from 'react';
 import { auth, provider, db } from '../firebase';
-import { signInWithPopup } from 'firebase/auth';
+import {
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
+} from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 function Login({ setUser }) {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   const handleGoogleLogin = async () => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // Save user to Firestore under "users" collection
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          name: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-          joinedAt: new Date()
-        });
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
+      } else {
+        const result = await signInWithPopup(auth, provider);
+        await processUser(result.user);
       }
-
-      // Update parent state
-      setUser({
-        uid: user.uid,
-        name: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL
-      });
-
     } catch (error) {
       console.error("Login Error:", error);
       alert("Failed to log in. Try again.");
     }
   };
+
+  const processUser = async (user) => {
+    if (!user) return;
+
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      await setDoc(userRef, {
+        name: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+        joinedAt: new Date()
+      });
+    }
+
+    setUser({
+      uid: user.uid,
+      name: user.displayName,
+      email: user.email,
+      photoURL: user.photoURL
+    });
+  };
+
+  useEffect(() => {
+    // For mobile login - handle result after redirect
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && result.user) {
+          processUser(result.user);
+        }
+      })
+      .catch((error) => {
+        console.error("Redirect Login Error:", error);
+      });
+  }, []);
 
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
