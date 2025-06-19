@@ -6,18 +6,20 @@ function ActivityManager({ user }) {
   const [activities, setActivities] = useState([]);
   const [newActivity, setNewActivity] = useState('');
 
-  const activitiesRef = collection(db, 'users', user.uid, 'activities');
-
   useEffect(() => {
+    const activitiesRef = collection(db, 'users', user.uid, 'activities');
+
     const unsubscribe = onSnapshot(activitiesRef, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setActivities(items);
     });
+
     return () => unsubscribe();
-  }, [user.uid]);
+  }, [user.uid]); // ✅ Clean dependency list
 
   const handleAddActivity = async () => {
     if (newActivity.trim()) {
+      const activitiesRef = collection(db, 'users', user.uid, 'activities');
       await addDoc(activitiesRef, { name: newActivity.trim() });
       setNewActivity('');
     }
