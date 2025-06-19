@@ -9,6 +9,7 @@ import './App.css';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import FocusProgressChart from './components/FocusProgressChart';
+import './logo.svg';
 
 
 function App() {
