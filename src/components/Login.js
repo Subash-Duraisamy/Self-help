@@ -61,7 +61,7 @@ function Login({ setUser }) {
       }
     };
     completeRedirectLogin(); // Avoids dependency hell
-  }, []);
+  }, [processUser]);
 
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
