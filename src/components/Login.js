@@ -1,5 +1,4 @@
-// src/components/Login.js
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { auth, provider, db } from '../firebase';
 import {
   signInWithPopup,
@@ -25,7 +24,8 @@ function Login({ setUser }) {
     }
   };
 
-  const processUser = async (user) => {
+  // ✅ useCallback to avoid ESLint warning
+  const processUser = useCallback(async (user) => {
     if (!user) return;
 
     const userRef = doc(db, "users", user.uid);
@@ -46,10 +46,9 @@ function Login({ setUser }) {
       email: user.email,
       photoURL: user.photoURL
     });
-  };
+  }, [setUser]);
 
   useEffect(() => {
-    // For mobile login - handle result after redirect
     getRedirectResult(auth)
       .then((result) => {
         if (result && result.user) {
@@ -59,7 +58,7 @@ function Login({ setUser }) {
       .catch((error) => {
         console.error("Redirect Login Error:", error);
       });
-  }, []);
+  }, [processUser]);
 
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
