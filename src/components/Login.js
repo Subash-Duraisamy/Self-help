@@ -1,45 +1,37 @@
-// src/components/Login.js
 import React, { useEffect } from 'react';
 import { auth, provider, db } from '../firebase';
 import {
   signInWithPopup,
   signInWithRedirect,
-  getRedirectResult,
+  getRedirectResult
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 function Login({ setUser }) {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  // ✅ Save user to Firestore and update state
   const processUser = async (user) => {
     if (!user) return;
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
 
-    try {
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          name: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-          joinedAt: new Date(),
-        });
-      }
-
-      setUser({
-        uid: user.uid,
+    if (!userSnap.exists()) {
+      await setDoc(userRef, {
         name: user.displayName,
         email: user.email,
         photoURL: user.photoURL,
+        joinedAt: new Date(),
       });
-    } catch (error) {
-      console.error("Failed to process user:", error);
     }
+
+    setUser({
+      uid: user.uid,
+      name: user.displayName,
+      email: user.email,
+      photoURL: user.photoURL,
+    });
   };
 
-  // ✅ Start login
   const handleGoogleLogin = async () => {
     try {
       if (isMobile) {
@@ -50,38 +42,36 @@ function Login({ setUser }) {
       }
     } catch (error) {
       console.error("Login Error:", error);
-      alert("❌ Failed to log in. Please try again.");
+      alert("Failed to log in. Try again.");
     }
   };
 
-  // ✅ Handle redirect result (for mobile)
   useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
         if (result && result.user) {
-          processUser(result.user);
+          await processUser(result.user);
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Redirect Login Error:", error);
-      });
+      }
+    };
+    handleRedirect();
   }, []);
 
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
       <h2>Welcome to Self-Help Tracker</h2>
-      <button
-        onClick={handleGoogleLogin}
-        style={{
-          padding: "10px 20px",
-          fontSize: "16px",
-          cursor: "pointer",
-          backgroundColor: "#4285F4",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-        }}
-      >
+      <button onClick={handleGoogleLogin} style={{
+        padding: "10px 20px",
+        fontSize: "16px",
+        backgroundColor: "#4285F4",
+        color: "#fff",
+        border: "none",
+        borderRadius: "5px",
+        cursor: "pointer"
+      }}>
         Sign in with Google
       </button>
     </div>
