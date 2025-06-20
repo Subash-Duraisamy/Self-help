@@ -1,5 +1,5 @@
 // src/components/Login.js
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { auth, provider, db } from '../firebase';
 import {
   signInWithPopup,
@@ -11,30 +11,33 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 function Login({ setUser }) {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
- // Outside Login component
-const processUser = async (user, setUser) => {
-  if (!user) return;
+  const processUser = useCallback(async (user) => {
+    if (!user) return;
 
-  const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
 
-  if (!userSnap.exists()) {
-    await setDoc(userRef, {
-      name: user.displayName,
-      email: user.email,
-      photoURL: user.photoURL,
-      joinedAt: new Date()
-    });
-  }
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          name: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          joinedAt: new Date()
+        });
+      }
 
-  setUser({
-    uid: user.uid,
-    name: user.displayName,
-    email: user.email,
-    photoURL: user.photoURL
-  });
-};
-
+      setUser({
+        uid: user.uid,
+        name: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL
+      });
+    } catch (err) {
+      console.error("🔥 Failed to process user:", err);
+      alert("Could not complete login. Please try again.");
+    }
+  }, [setUser]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -45,23 +48,23 @@ const processUser = async (user, setUser) => {
         await processUser(result.user);
       }
     } catch (error) {
-      console.error("Login Error:", error);
+      console.error("🔴 Login Error:", error);
       alert("Failed to log in. Try again.");
     }
   };
 
-  // On redirect complete (mobile), resume user login
- useEffect(() => {
-  getRedirectResult(auth)
-    .then((result) => {
-      if (result && result.user) {
-        processUser(result.user, setUser);
-      }
-    })
-    .catch((error) => {
-      console.error("Redirect Login Error:", error);
-    });
-}, [setUser]);
+  // This handles mobile login after redirect
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && result.user) {
+          processUser(result.user);
+        }
+      })
+      .catch((error) => {
+        console.error("⚠️ Redirect Login Error:", error);
+      });
+  }, [processUser]);
 
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
